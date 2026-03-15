@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YouTube RSS Reader</title>
+<title>YouTube RSS Deep Reader — AI-Powered Content Summaries</title>
 <style>
 :root {
   --bg: #0f0f0f;
@@ -442,6 +442,18 @@ body {
 .blog-post th { background: var(--surface); font-weight: 600; }
 .blog-post p { margin: 8px 0; }
 
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .feed { padding: 10px; }
+  .video-main { flex-direction: column; gap: 8px; }
+  .video-thumb { width: 100%; height: auto; aspect-ratio: 16/9; }
+  .action-bar { flex-wrap: wrap; }
+  .header h1 { font-size: 15px; }
+  .header-actions button { padding: 5px 10px; font-size: 12px; }
+  .modal { width: 95vw; max-height: 90vh; overflow-y: auto; }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -452,9 +464,12 @@ body {
 <body>
 
 <div class="header">
-  <h1>YouTube RSS Reader</h1>
+  <div style="display:flex;align-items:baseline;gap:10px">
+    <h1>Deep Reader</h1>
+    <span style="font-size:12px;color:var(--text2)">AI-Powered YouTube Digest</span>
+  </div>
   <div class="header-actions">
-    <button onclick="refreshAllFeeds()">Refresh</button>
+    <button onclick="refreshAllFeeds()">Refresh All</button>
     <button onclick="showSavedPosts()">Saved Posts</button>
     <button onclick="showSettings()">Settings</button>
   </div>
@@ -785,7 +800,14 @@ function renderChannels() {
     div.className = 'channel-item' + (activeFilter === f.url ? ' active' : '');
     const nameSpan = document.createElement('span');
     nameSpan.className = 'name';
+    const videoCount = allVideos.filter(v => v.feedUrl === f.url).length;
     nameSpan.textContent = f.name || f.url;
+    if (videoCount > 0) {
+      const countSpan = document.createElement('span');
+      countSpan.style.cssText = 'font-size:11px;color:var(--text2);margin-left:4px';
+      countSpan.textContent = `(${videoCount})`;
+      nameSpan.appendChild(countSpan);
+    }
     const removeSpan = document.createElement('span');
     removeSpan.className = 'remove';
     removeSpan.textContent = '\u00d7';
