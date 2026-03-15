@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Turn YouTube subscriptions into AI-powered deep content summaries and publishable blog posts — without watching a single video.">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
 <title>YouTube RSS Deep Reader — AI-Powered Content Summaries</title>
 <style>
 :root {
@@ -442,9 +445,25 @@ body {
 .blog-post th { background: var(--surface); font-weight: 600; }
 .blog-post p { margin: 8px 0; }
 
+/* Toast error variant */
+.toast.error { background: var(--accent); }
+
 /* Mobile responsive */
+.sidebar-toggle {
+  display: none;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+}
+
 @media (max-width: 768px) {
-  .sidebar { display: none; }
+  .sidebar-toggle { display: block; }
+  .sidebar { display: none; position: fixed; top: 52px; left: 0; bottom: 0; z-index: 50; width: 260px; }
+  .sidebar.open { display: flex; }
   .feed { padding: 10px; }
   .video-main { flex-direction: column; gap: 8px; }
   .video-thumb { width: 100%; height: auto; aspect-ratio: 16/9; }
@@ -452,6 +471,17 @@ body {
   .header h1 { font-size: 15px; }
   .header-actions button { padding: 5px 10px; font-size: 12px; }
   .modal { width: 95vw; max-height: 90vh; overflow-y: auto; }
+}
+
+/* Progress bar */
+.progress-bar {
+  height: 3px;
+  background: var(--accent);
+  transition: width 0.3s;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 300;
 }
 
 /* Scrollbar */
@@ -469,7 +499,9 @@ body {
     <span style="font-size:12px;color:var(--text2)">AI-Powered YouTube Digest</span>
   </div>
   <div class="header-actions">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
     <button onclick="refreshAllFeeds()">Refresh All</button>
+    <button id="btnBatchSummary" onclick="batchSummarize()">Summarize All</button>
     <button onclick="showSavedPosts()">Saved Posts</button>
     <button onclick="showSettings()">Settings</button>
   </div>
@@ -572,6 +604,13 @@ body {
 - 根据上下文修正转写识别错误，口语改书面
 - 开头用一个表格总结所有关键 facts 和数字</textarea>
     </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:8px">Feed Management</label>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="exportOPML()" style="flex:1">Export OPML</button>
+        <button class="btn btn-outline" onclick="importOPML()" style="flex:1">Import OPML</button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
       <button class="btn btn-primary" onclick="saveSettings()">Save</button>
@@ -579,6 +618,7 @@ body {
   </div>
 </div>
 
+<div class="progress-bar" id="progressBar" style="width:0;display:none"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -630,7 +670,18 @@ if (parseInt(localStorage.getItem('yt_settings_ver') || '0') < SETTINGS_VERSION)
 }
 let allVideos = [];
 let activeFilter = null;
-let videoData = {}; // videoId -> { summary, xhsPost }
+// Persist videoData (summaries, blog posts) across page refreshes
+let videoData = JSON.parse(localStorage.getItem('yt_video_data') || '{}');
+function persistVideoData() {
+  // Only persist summaries and blogPosts, not transcripts (too large)
+  const slim = {};
+  for (const [id, d] of Object.entries(videoData)) {
+    slim[id] = {};
+    if (d.summary) slim[id].summary = d.summary;
+    if (d.blogPost) slim[id].blogPost = d.blogPost;
+  }
+  try { localStorage.setItem('yt_video_data', JSON.stringify(slim)); } catch(e) { /* quota */ }
+}
 
 // ============ Server API Base ============
 const API_BASE = window.location.origin;
@@ -977,7 +1028,7 @@ async function addFeed() {
     input.value = '';
     showToast(`Added: ${channelTitle}`);
   } catch(e) {
-    showToast('Failed to fetch feed: ' + e.message);
+    showToast('Failed to fetch feed: ' + e.message, true);
   }
 }
 
@@ -1049,6 +1100,7 @@ async function generateSummary(videoId) {
     );
 
     videoData[videoId].summary = summary;
+    persistVideoData();
 
     btn.textContent = 'Refresh Summary';
     btn.disabled = false;
@@ -1112,6 +1164,7 @@ async function generateBlogPost(videoId) {
     );
 
     data.blogPost = blogPost;
+    persistVideoData();
 
     // Re-render full view
     renderVideos();
@@ -1158,7 +1211,7 @@ async function generateCoverImage(videoId) {
     if (card) card.classList.add('expanded');
     showToast('Cover image generated!');
   } catch(e) {
-    showToast('Image generation failed: ' + e.message);
+    showToast('Image generation failed: ' + e.message, true);
     btn.textContent = 'Retry Cover';
     btn.disabled = false;
   }
@@ -1374,12 +1427,119 @@ function getTimeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-function showToast(msg) {
+function showToast(msg, isError) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
+  toast.classList.toggle('error', !!isError);
   toast.classList.add('show');
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
+  toast._timer = setTimeout(() => { toast.classList.remove('show'); toast.classList.remove('error'); }, 2500);
+}
+
+// ============ Batch Summarize ============
+async function batchSummarize() {
+  const btn = document.getElementById('btnBatchSummary');
+  const bar = document.getElementById('progressBar');
+  const visible = activeFilter
+    ? allVideos.filter(v => v.feedUrl === activeFilter)
+    : allVideos;
+  const unsummarized = visible.filter(v => !videoData[v.videoId]?.summary);
+  if (unsummarized.length === 0) { showToast('All visible videos already summarized'); return; }
+
+  btn.disabled = true;
+  btn.textContent = `0/${unsummarized.length}`;
+  bar.style.display = 'block';
+  bar.style.width = '0%';
+
+  let done = 0;
+  for (const v of unsummarized) {
+    try {
+      videoData[v.videoId] = videoData[v.videoId] || {};
+      if (!videoData[v.videoId].transcript) {
+        videoData[v.videoId].transcript = await fetchTranscript(v.videoId);
+      }
+      const summary = await callAI(
+        SUMMARY_PROMPT,
+        `Video: "${v.title}" by ${v.channelTitle}\n\nTranscript:\n\n${videoData[v.videoId].transcript}`,
+        null
+      );
+      videoData[v.videoId].summary = summary;
+      persistVideoData();
+    } catch(e) {
+      console.error(`Batch summary failed for ${v.videoId}:`, e);
+    }
+    done++;
+    btn.textContent = `${done}/${unsummarized.length}`;
+    bar.style.width = `${(done / unsummarized.length) * 100}%`;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Summarize All';
+  bar.style.display = 'none';
+  renderVideos();
+  showToast(`Batch complete: ${done} summaries generated`);
+}
+
+// ============ Mobile Sidebar Toggle ============
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+}
+
+// ============ OPML Export/Import ============
+function exportOPML() {
+  const items = feeds.map(f =>
+    `    <outline text="${escXml(f.name)}" xmlUrl="${escXml(f.url)}" type="rss"/>`
+  ).join('\n');
+  const opml = `<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>YouTube RSS Deep Reader Subscriptions</title></head>
+  <body>
+${items}
+  </body>
+</opml>`;
+  const blob = new Blob([opml], { type: 'text/xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'youtube-rss-subscriptions.opml';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('OPML exported');
+}
+
+function importOPML() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.opml,.xml';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, 'text/xml');
+    const outlines = doc.querySelectorAll('outline[xmlUrl]');
+    let added = 0;
+    for (const o of outlines) {
+      const url = o.getAttribute('xmlUrl');
+      const name = o.getAttribute('text') || url;
+      if (url && !feeds.some(f => f.url === url)) {
+        feeds.push({ url, name });
+        added++;
+      }
+    }
+    if (added > 0) {
+      localStorage.setItem('yt_rss_feeds', JSON.stringify(feeds));
+      renderChannels();
+      showToast(`Imported ${added} feeds`);
+      refreshAllFeeds();
+    } else {
+      showToast('No new feeds found in OPML');
+    }
+  };
+  input.click();
+}
+
+function escXml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ============ Init ============

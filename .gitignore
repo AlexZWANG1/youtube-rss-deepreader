@@ -2,8 +2,10 @@ node_modules/
 posts/
 images/
 .claude/
-docs/superpowers/
+docs/
 *.log
 .env
+.env.*
 .DS_Store
 Thumbs.db
+desktop.ini

@@ -22,13 +22,18 @@ All from a single dark-mode panel. No video watching required.
 
 - **14 Pre-configured AI/Tech Channels** — No Priors, a16z, Lex Fridman, Dwarkesh Patel, All-In Podcast, Andrej Karpathy, and more
 - **One-Click AI Summary** — Fetches transcript + generates summary automatically
+- **Batch Summarize All** — Generate summaries for all visible videos with progress tracking
 - **Deep Blog Post Generation** — Streaming AI output with structured Markdown, bilingual quotes, facts tables
+- **Persistent Data** — Summaries and blog posts survive page refreshes (stored in localStorage)
 - **File Save System** — Save generated posts as `.md` files with frontmatter metadata
 - **Saved Posts Browser** — View, copy, and manage all saved articles
 - **Rich Text Copy** — Copy as Markdown or formatted HTML for direct pasting into editors
 - **Cover Image Generation** — AI-generated blog covers via Gemini (requires Gemini API access)
+- **OPML Import/Export** — Migrate your subscriptions between devices or feed readers
 - **Customizable AI Settings** — Endpoint, API key, model, and system prompt all configurable
+- **Search & Keyboard Shortcuts** — Filter videos by title/channel/content, Ctrl+K to search
 - **Dark Mode UI** — Clean, distraction-free reading experience
+- **Mobile Responsive** — Collapsible sidebar with hamburger menu on small screens
 - **Add Any Channel** — Paste any YouTube RSS URL or channel URL to add custom feeds
 
 ## Screenshots
@@ -156,9 +161,11 @@ Works with any OpenAI-compatible chat completions endpoint:
 
 ```
 youtube-rss-deepreader/
-├── index.html        # Frontend (single file, ~1100 lines)
+├── index.html        # Frontend (single file, ~1570 lines)
 ├── server.js         # Backend API server (~190 lines)
 ├── package.json      # Dependencies
+├── LICENSE           # MIT License
+├── RELEASE_POST.md   # Release announcement (Chinese)
 ├── posts/            # Saved blog posts (git-ignored)
 ├── images/           # Generated cover images (git-ignored)
 └── README.md
@@ -167,6 +174,15 @@ youtube-rss-deepreader/
 ## License
 
 MIT
+
+## What's New in v1.2
+
+- **Batch Summarize All** — One-click AI summaries for all visible videos with real-time progress bar
+- **Persistent Data** — Summaries and blog posts survive page refreshes (stored in localStorage)
+- **Mobile Responsive** — Collapsible sidebar with hamburger menu on small screens
+- **OPML Import/Export** — Migrate subscriptions between devices or feed readers
+- **Search & Keyboard Shortcuts** — Filter videos by title/channel/content, `Ctrl+K` to focus search
+- **Error Toast Styling** — Visual distinction between success and error notifications
 
 ## Contributing
 
@@ -177,4 +193,5 @@ PRs welcome! Some ideas:
 - [ ] Podcast RSS support (not just YouTube)
 - [ ] Multi-language summary support
 - [ ] Reading list / bookmark system
-- [ ] Mobile responsive layout improvements
+- [ ] Docker deployment support
+- [ ] Browser extension version
