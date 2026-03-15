@@ -1,0 +1,9 @@
+node_modules/
+posts/
+images/
+.claude/
+docs/superpowers/
+*.log
+.env
+.DS_Store
+Thumbs.db

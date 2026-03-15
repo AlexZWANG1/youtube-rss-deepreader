@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube RSS Reader</title>
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #252525;
+  --border: #333;
+  --text: #e8e8e8;
+  --text2: #aaa;
+  --accent: #ff4444;
+  --accent2: #ff6b6b;
+  --green: #4caf50;
+  --blue: #2196f3;
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.header-actions button {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.header-actions button:hover { background: var(--border); }
+
+/* Main Layout */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+}
+
+.sidebar-header input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+
+.sidebar-header input:focus { border-color: var(--accent); }
+
+.sidebar-header button {
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.channel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.channel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.channel-item:hover { background: var(--surface2); }
+.channel-item.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+
+.channel-item .name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-item .remove {
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.channel-item:hover .remove { opacity: 1; }
+.channel-item .remove:hover { color: var(--accent); background: rgba(255,68,68,0.1); }
+
+.channel-all {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  transition: background 0.2s;
+}
+
+.channel-all:hover, .channel-all.active { background: var(--surface2); color: var(--text); }
+
+/* Feed */
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.video-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.video-card:hover { border-color: #555; }
+
+.video-main {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.video-thumb {
+  width: 168px;
+  height: 94px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+
+.video-info { flex: 1; min-width: 0; }
+
+.video-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.video-meta {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.video-meta span + span::before {
+  content: ' · ';
+}
+
+/* Summary preview on card */
+.video-summary-preview {
+  padding: 8px 14px 12px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+
+.video-summary-preview strong { color: var(--text); }
+
+/* Expanded content */
+.video-expand {
+  display: none;
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.video-card.expanded .video-expand { display: block; padding-top: 14px; }
+
+.action-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover { background: var(--accent2); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-green {
+  background: var(--green);
+  color: white;
+}
+
+.btn-green:hover { opacity: 0.9; }
+.btn-green:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-outline {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-outline:hover { background: var(--surface2); }
+
+.btn-copy {
+  background: var(--blue);
+  color: white;
+}
+
+.btn-copy:hover { opacity: 0.9; }
+
+/* Content sections */
+.section-box {
+  background: var(--surface2);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text2);
+  font-size: 13px;
+  padding: 10px 0;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Settings Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 420px;
+  max-width: 90vw;
+}
+
+.modal h2 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 4px;
+}
+
+.form-group input, .form-group textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-group textarea { min-height: 80px; resize: vertical; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text2);
+}
+
+.empty-state p { font-size: 14px; margin-top: 8px; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 18px;
+  border-radius: var(--radius);
+  background: var(--green);
+  color: white;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Blog post rendered content */
+.blog-post { font-size: 14px; line-height: 1.8; }
+.blog-post h2 { font-size: 18px; margin: 16px 0 8px; color: var(--accent); }
+.blog-post h3 { font-size: 15px; margin: 14px 0 6px; color: var(--text); }
+.blog-post h4 { font-size: 14px; margin: 12px 0 4px; color: var(--text2); }
+.blog-post strong { color: #fff; }
+.blog-post blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 8px 0;
+  padding: 4px 12px;
+  color: var(--text2);
+  font-style: italic;
+}
+.blog-post hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+.blog-post ul { padding-left: 20px; margin: 8px 0; }
+.blog-post li { margin: 4px 0; }
+.blog-post table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+.blog-post th, .blog-post td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+.blog-post th { background: var(--surface); font-weight: 600; }
+.blog-post p { margin: 8px 0; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>YouTube RSS Reader</h1>
+  <div class="header-actions">
+    <button onclick="refreshAllFeeds()">Refresh</button>
+    <button onclick="showSavedPosts()">Saved Posts</button>
+    <button onclick="showSettings()">Settings</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <input type="text" id="rssInput" placeholder="YouTube RSS URL..."
+             onkeydown="if(event.key==='Enter')addFeed()">
+      <button onclick="addFeed()">+</button>
+    </div>
+    <div class="channel-list" id="channelList">
+      <div class="channel-all active" onclick="filterChannel(null, this)">All Channels</div>
+    </div>
+  </div>
+  <div class="feed" id="feed"></div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>Settings</h2>
+    <div class="form-group">
+      <label>API Endpoint</label>
+      <input type="text" id="setEndpoint" value="http://localhost:8080/v1/chat/completions">
+    </div>
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="text" id="setApiKey" value="My_Project">
+    </div>
+    <div class="form-group">
+      <label>Model</label>
+      <input type="text" id="setModel" value="gpt-5.4">
+    </div>
+    <div class="form-group">
+      <label>Deep Content Editor System Prompt</label>
+      <textarea id="setSummaryPrompt" style="min-height:260px">你是"深度内容编辑"，参考宝玉(@dotey)的科技博客风格。基于 Sources（播客/视频转写）写一篇信息密度高、可直接发布的长文。像一个认真听完的科技记者在做深度复盘。
+
+输出格式（Markdown）：
+
+# 标题（结论式，包含人物名 + 核心判断 + 主题关键词）
+
+**嘉宾简介**（1段：谁，现在做什么，之前做过什么，为什么值得听）
+
+来源：频道/播客名，日期
+
+## 要点速览
+
+- **要点1标题**：一句话展开（4-5个要点，每条加粗小标题+冒号+解释）
+- **要点2标题**：...
+
+---
+
+## 正文小节标题1（结论句式，不是问题）
+
+叙事段落 → 引出核心观点 → 双语引文 → 数据/案例支撑 → 分析
+
+> 中文翻译的引文放在这里
+> （"English original quote here."）
+
+继续叙事...涉及专业术语时用【注：xxx 指...】补充说明
+
+## 正文小节标题2...
+
+（多个小节按主题推进，不按时间线）
+
+## 结尾
+
+收束主线，读者应带走的核心判断框架
+
+## 话题标签
+
+#标签1 #标签2 ...
+
+---
+
+忠实度要求（最高优先级）：
+- 你的唯一信息来源是 transcript，不要添加 transcript 里没有的信息、观点或推测
+- 覆盖 transcript 中讨论的每一个主要话题，不跳过任何一段完整讨论，宁长勿短
+- 所有观点、判断、预测必须明确归因给具体发言者（"XX认为"/"XX的判断是"），不要写成客观事实
+- 引用必须忠实于原话含义，不要扭曲或夸大
+- 如果 transcript 中某段内容模糊或可能有识别错误，用【原文不清】标注，不要猜测填补
+- 涉及数据/数字时加"据节目提到"来表述，因为你无法核实
+- 不要加入你自己的评价或判断
+
+写作规则：
+- 小标题必须是结论/判断句（如"设计流程已死，不是自己死的，是被工程速度逼死的"），不要用问句
+- 双语引文格式：中文自然翻译在上，英文原文括号在下，使用 blockquote
+- 数据用具体数字呈现，善用对比（"从60-70%压缩到30-40%"、"从2-5年缩到3-6个月"）
+- 案例要故事化叙述（"有人在Slack里说…然后…结果…"），不要干巴巴列举
+- 新概念/产品/人名首次出现时用【注：...】补充
+- 重点关键词和产品名**加粗**
+- 根据上下文修正转写识别错误，口语改书面
+- 开头用一个表格总结所有关键 facts 和数字</textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ State ============
+const DEFAULT_FEEDS = [
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCSI7h9hydQ40K5MJHnCrQvw', name: 'No Priors (a16z)' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC9cn0TuPq4dnbTY-CBsm8XA', name: 'a16z' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCSHZKyawb77ixDdsGog4iWA', name: 'Lex Fridman' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCXl4i9dYBrFOabk0xGmbkRA', name: 'Dwarkesh Patel' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCbY9xX3_jW5c2fjlZVBI4cg', name: 'TheAIGRID' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCESLZhusAkFfsNsApnjF_Cg', name: 'All-In Podcast' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg', name: 'Two Minute Papers' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw', name: 'AI Explained' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCawZsQWqfGSbCI5yjkdVkTA', name: 'Matthew Berman' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCPk8m_r6fkUSYmvgCBwq-sw', name: 'Andrej Karpathy' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCZHmQk67mSJgfCCTn7xBfew', name: 'Yannic Kilcher' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCMLtBahI5DMrt0NPvDSoIRQ', name: 'ML Street Talk' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCqcbQf6yw5KzRoDDcZ_wBSw', name: 'Wes Roth' },
+  { url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UChpleBmo18P08aKCIgti38g', name: 'Matt Wolfe' },
+];
+const FEEDS_VERSION = 2; // bump to force-reset defaults
+let feeds;
+if (parseInt(localStorage.getItem('yt_feeds_ver') || '0') < FEEDS_VERSION) {
+  feeds = [...DEFAULT_FEEDS];
+  localStorage.setItem('yt_rss_feeds', JSON.stringify(feeds));
+  localStorage.setItem('yt_feeds_ver', String(FEEDS_VERSION));
+} else {
+  feeds = JSON.parse(localStorage.getItem('yt_rss_feeds') || 'null');
+  if (!feeds || feeds.length === 0) feeds = [...DEFAULT_FEEDS];
+}
+const SETTINGS_VERSION = 3; // bump to force-reset settings
+let settings;
+if (parseInt(localStorage.getItem('yt_settings_ver') || '0') < SETTINGS_VERSION) {
+  settings = {
+    apiEndpoint: 'http://localhost:8080/v1/chat/completions',
+    apiKey: 'My_Project',
+    model: 'gpt-5.4',
+    summaryPrompt: document.getElementById('setSummaryPrompt').value
+  };
+  localStorage.setItem('yt_settings', JSON.stringify(settings));
+  localStorage.setItem('yt_settings_ver', String(SETTINGS_VERSION));
+} else {
+  settings = JSON.parse(localStorage.getItem('yt_settings') || 'null') || {
+    apiEndpoint: 'http://localhost:8080/v1/chat/completions',
+    apiKey: 'My_Project',
+    model: 'gpt-5.4',
+    summaryPrompt: document.getElementById('setSummaryPrompt').value
+  };
+}
+let allVideos = [];
+let activeFilter = null;
+let videoData = {}; // videoId -> { summary, xhsPost }
+
+// ============ Server API Base ============
+const API_BASE = window.location.origin;
+
+// ============ RSS Parsing ============
+function getTagText(el, tagName) {
+  return el.getElementsByTagName(tagName)[0]?.textContent || '';
+}
+
+async function fetchRSS(feedUrl) {
+  const resp = await fetch(`${API_BASE}/api/rss?url=${encodeURIComponent(feedUrl)}`);
+  if (!resp.ok) throw new Error('Failed to fetch RSS feed');
+  const xml = await resp.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const channelTitle = getTagText(doc, 'title') || 'Unknown Channel';
+  const entries = doc.getElementsByTagName('entry');
+  const videos = [];
+  for (const entry of entries) {
+    const link = entry.getElementsByTagName('link')[0]?.getAttribute('href') || '';
+    const videoId = getTagText(entry, 'yt:videoId')
+      || link.match(/[?&]v=([\w-]+)/)?.[1]
+      || getTagText(entry, 'id').split(':').pop() || '';
+    const title = getTagText(entry, 'title');
+    const published = getTagText(entry, 'published');
+    const mediaGroup = entry.getElementsByTagName('media:group')[0];
+    const thumbnail = mediaGroup?.getElementsByTagName('media:thumbnail')[0]?.getAttribute('url')
+      || `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+    const description = mediaGroup?.getElementsByTagName('media:description')[0]?.textContent || '';
+    videos.push({
+      videoId, title, published, link, thumbnail, description,
+      channelTitle, feedUrl
+    });
+  }
+  return { channelTitle, videos };
+}
+
+// ============ Transcript ============
+async function fetchTranscript(videoId) {
+  const resp = await fetch(`${API_BASE}/api/transcript?v=${videoId}`);
+  const data = await resp.json();
+  if (!resp.ok || data.error) throw new Error(data.error || 'Failed to fetch transcript');
+  return data.text;
+}
+
+// ============ AI API ============
+async function callAI(systemPrompt, userContent, onChunk) {
+  const resp = await fetch(settings.apiEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.apiKey}`
+    },
+    body: JSON.stringify({
+      model: settings.model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userContent }
+      ],
+      stream: true
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`AI API error: ${resp.status} - ${err}`);
+  }
+
+  // Handle non-streaming JSON response (if proxy ignores stream:true)
+  const contentType = resp.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    const json = await resp.json();
+    const text = json.choices?.[0]?.message?.content || '';
+    if (onChunk) onChunk(text);
+    return text;
+  }
+
+  // Handle SSE streaming response
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data:')) continue;
+      const data = trimmed.slice(5).trim();
+      if (data === '[DONE]') break;
+      try {
+        const json = JSON.parse(data);
+        const delta = json.choices?.[0]?.delta?.content;
+        if (delta) {
+          fullText += delta;
+          if (onChunk) onChunk(fullText);
+        }
+      } catch(e) { /* skip malformed chunks */ }
+    }
+  }
+
+  // Fallback: if SSE parsing yielded nothing, try parsing entire response as JSON
+  if (!fullText && buffer.trim()) {
+    try {
+      const json = JSON.parse(buffer);
+      fullText = json.choices?.[0]?.message?.content || '';
+      if (onChunk && fullText) onChunk(fullText);
+    } catch(e) { /* not JSON either */ }
+  }
+
+  return fullText;
+}
+
+// ============ AI Image Generation ============
+async function generateImage(prompt) {
+  const resp = await fetch(settings.apiEndpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gemini-2.5-flash',
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      modalities: ['image', 'text'],
+      image_config: { aspect_ratio: '16:9', image_size: '2K' }
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Image API error: ${resp.status} - ${err}`);
+  }
+
+  const json = await resp.json();
+  // Extract base64 image from response - handle multiple response formats
+  const choice = json.choices?.[0];
+  const msg = choice?.message;
+
+  // Format 1: content is array with parts (OpenRouter style)
+  if (Array.isArray(msg?.content)) {
+    for (const part of msg.content) {
+      if (part.type === 'image_url') return part.image_url?.url;
+      if (part.type === 'image' && part.data) return `data:image/png;base64,${part.data}`;
+      if (part.type === 'image' && part.source?.data) return `data:${part.source.media_type || 'image/png'};base64,${part.source.data}`;
+    }
+  }
+  // Format 2: content is base64 string directly
+  if (typeof msg?.content === 'string' && msg.content.startsWith('data:image')) return msg.content;
+  // Format 3: image field on message
+  if (msg?.image) return msg.image.startsWith('data:') ? msg.image : `data:image/png;base64,${msg.image}`;
+
+  throw new Error('No image in response');
+}
+
+// ============ UI Rendering ============
+function renderChannels() {
+  const list = document.getElementById('channelList');
+  // Keep "All Channels" item
+  list.innerHTML = '<div class="channel-all' + (activeFilter === null ? ' active' : '') +
+    '" onclick="filterChannel(null, this)">All Channels</div>';
+
+  feeds.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'channel-item' + (activeFilter === f.url ? ' active' : '');
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'name';
+    nameSpan.textContent = f.name || f.url;
+    const removeSpan = document.createElement('span');
+    removeSpan.className = 'remove';
+    removeSpan.textContent = '\u00d7';
+    removeSpan.onclick = (e) => { e.stopPropagation(); removeFeed(i); };
+    div.appendChild(nameSpan);
+    div.appendChild(removeSpan);
+    div.onclick = () => filterChannel(f.url, div);
+    list.appendChild(div);
+  });
+}
+
+function renderVideos() {
+  const feed = document.getElementById('feed');
+
+  if (activeFilter === '__saved__') return; // handled by showSavedPosts
+  let filtered = activeFilter
+    ? allVideos.filter(v => v.feedUrl === activeFilter)
+    : allVideos;
+
+  if (filtered.length === 0) {
+    if (feeds.length === 0) {
+      feed.innerHTML = `<div class="empty-state">
+        <h3>No subscriptions yet</h3>
+        <p>Add a YouTube RSS feed URL in the sidebar to get started.</p>
+        <p style="margin-top:12px;font-size:12px;color:#666;">
+          Format: https://www.youtube.com/feeds/videos.xml?channel_id=XXXXX
+        </p></div>`;
+    } else {
+      feed.innerHTML = `<div class="empty-state">
+        <h3>No videos found</h3>
+        <p>Try refreshing or selecting a different channel.</p></div>`;
+    }
+    return;
+  }
+
+  feed.innerHTML = filtered.map(v => {
+    const data = videoData[v.videoId] || {};
+    const timeAgo = getTimeAgo(v.published);
+    const hasSummary = !!data.summary;
+    const hasBlog = !!data.blogPost;
+    return `
+    <div class="video-card" id="card-${v.videoId}">
+      <div class="video-main" onclick="toggleExpand('${v.videoId}')">
+        <img class="video-thumb" src="${escHtml(v.thumbnail)}" alt="" loading="lazy"
+             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22168%22 height=%2294%22><rect fill=%22%23333%22 width=%22168%22 height=%2294%22/></svg>'">
+        <div class="video-info">
+          <div class="video-title">${escHtml(v.title)}</div>
+          <div class="video-meta">
+            <span>${escHtml(v.channelTitle)}</span>
+            <span>${timeAgo}</span>
+            ${hasSummary ? '<span style="color:var(--green)">Summarized</span>' : ''}
+            ${hasBlog ? '<span style="color:var(--blue)">Blog Ready</span>' : ''}
+          </div>
+        </div>
+      </div>
+      ${hasSummary ? `<div class="video-summary-preview" onclick="toggleExpand('${v.videoId}')">${renderInline(data.summary)}</div>` : ''}
+      <div class="video-expand">
+        <div class="action-bar">
+          <button class="btn btn-primary" id="btn-summary-${v.videoId}" onclick="event.stopPropagation();generateSummary('${v.videoId}')">
+            ${hasSummary ? 'Refresh Summary' : 'AI Summary'}
+          </button>
+          <button class="btn btn-green" id="btn-blog-${v.videoId}" onclick="event.stopPropagation();generateBlogPost('${v.videoId}')">
+            ${hasBlog ? 'Regenerate Blog' : 'Deep Blog Post'}
+          </button>
+          <button class="btn" id="btn-img-${v.videoId}" onclick="event.stopPropagation();generateCoverImage('${v.videoId}')"
+                  style="background:#9c27b0;color:white" ${hasBlog ? '' : 'disabled'}>
+            ${data.coverImage ? 'Regen Cover' : 'Cover Image'}
+          </button>
+          <a class="btn btn-outline" href="${escHtml(v.link)}" target="_blank" onclick="event.stopPropagation()">
+            YouTube
+          </a>
+        </div>
+        <div id="content-${v.videoId}">
+          ${data.coverImage ? `<div class="section-label">Cover Image</div>
+            <div style="margin-bottom:10px"><img src="${data.coverImage}" style="width:100%;max-width:720px;border-radius:8px"></div>` : ''}
+          ${hasBlog ? `<div class="section-label">Blog Post</div>
+            <div class="section-box blog-post" id="blog-${v.videoId}">${renderMarkdown(data.blogPost)}</div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <button class="btn btn-copy" onclick="copyText('${v.videoId}', 'blog')">Copy Markdown</button>
+              <button class="btn btn-copy" style="background:var(--green)" onclick="copyText('${v.videoId}', 'blogHtml')">Copy Rich Text</button>
+              <button class="btn btn-copy" style="background:#ff9800" onclick="savePost('${v.videoId}')">Save to File</button>
+            </div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleExpand(videoId) {
+  const card = document.getElementById(`card-${videoId}`);
+  card.classList.toggle('expanded');
+}
+
+function filterChannel(feedUrl, el) {
+  activeFilter = feedUrl;
+  renderChannels();
+  if (feedUrl === '__saved__') {
+    showSavedPosts();
+  } else {
+    renderVideos();
+  }
+}
+
+// ============ Actions ============
+async function addFeed() {
+  const input = document.getElementById('rssInput');
+  let url = input.value.trim();
+  if (!url) return;
+
+  // Auto-convert channel URL to RSS URL
+  const channelIdMatch = url.match(/channel\/(UC[\w-]+)/);
+  if (channelIdMatch && !url.includes('feeds/videos.xml')) {
+    url = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelIdMatch[1]}`;
+  }
+
+  if (feeds.some(f => f.url === url)) {
+    showToast('Feed already exists');
+    return;
+  }
+
+  try {
+    showToast('Fetching feed...');
+    const { channelTitle, videos } = await fetchRSS(url);
+    feeds.push({ url, name: channelTitle });
+    localStorage.setItem('yt_rss_feeds', JSON.stringify(feeds));
+    allVideos = allVideos.concat(videos);
+    sortVideos();
+    renderChannels();
+    renderVideos();
+    input.value = '';
+    showToast(`Added: ${channelTitle}`);
+  } catch(e) {
+    showToast('Failed to fetch feed: ' + e.message);
+  }
+}
+
+function removeFeed(index) {
+  const url = feeds[index]?.url;
+  if (!url) return;
+  feeds.splice(index, 1);
+  localStorage.setItem('yt_rss_feeds', JSON.stringify(feeds));
+  allVideos = allVideos.filter(v => v.feedUrl !== url);
+  if (activeFilter === url) activeFilter = null;
+  renderChannels();
+  renderVideos();
+  showToast('Feed removed');
+}
+
+async function refreshAllFeeds() {
+  showToast('Refreshing...');
+  allVideos = [];
+  const promises = feeds.map(async f => {
+    try {
+      const { channelTitle, videos } = await fetchRSS(f.url);
+      f.name = channelTitle;
+      return videos;
+    } catch(e) {
+      console.error(`Failed to fetch ${f.url}:`, e);
+      return [];
+    }
+  });
+  const results = await Promise.all(promises);
+  allVideos = results.flat();
+  sortVideos();
+  localStorage.setItem('yt_rss_feeds', JSON.stringify(feeds));
+  renderChannels();
+  renderVideos();
+  showToast(`Refreshed: ${allVideos.length} videos`);
+}
+
+const SUMMARY_PROMPT = `用中文写一段简明的内容概述（150-250字），告诉读者这个视频/播客大概在聊什么、谁在聊、聊了哪些话题、有什么关键结论。像朋友给你简单介绍"这期讲了啥"的语气，自然连贯的一段话，不要用bullet points，不要用标题。关键人名和术语可以加粗。`;
+
+async function generateSummary(videoId) {
+  const btn = document.getElementById(`btn-summary-${videoId}`);
+  const contentDiv = document.getElementById(`content-${videoId}`);
+  const video = allVideos.find(v => v.videoId === videoId);
+  const videoTitle = video ? video.title : '';
+  const channelName = video ? video.channelTitle : '';
+
+  btn.disabled = true;
+  btn.textContent = 'Fetching transcript...';
+  contentDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching transcript & generating summary...</div>';
+
+  videoData[videoId] = videoData[videoId] || {};
+
+  try {
+    // Step 1: Fetch transcript (hidden from user)
+    if (!videoData[videoId].transcript) {
+      const transcript = await fetchTranscript(videoId);
+      videoData[videoId].transcript = transcript;
+    }
+
+    btn.textContent = 'Summarizing...';
+
+    // Step 2: Generate AI summary
+    const summary = await callAI(
+      SUMMARY_PROMPT,
+      `Video: "${videoTitle}" by ${channelName}\n\nTranscript:\n\n${videoData[videoId].transcript}`,
+      null // no streaming for short summary
+    );
+
+    videoData[videoId].summary = summary;
+
+    btn.textContent = 'Refresh Summary';
+    btn.disabled = false;
+
+    // Update preview on card and clear expand content
+    contentDiv.innerHTML = '';
+    renderVideos(); // re-render to show summary preview on card
+
+    // Re-expand the card
+    const card = document.getElementById(`card-${videoId}`);
+    if (card) card.classList.add('expanded');
+
+    showToast('Summary generated!');
+  } catch(e) {
+    contentDiv.innerHTML = `<div class="section-box" style="color:var(--accent)">Error: ${escHtml(e.message)}</div>`;
+    btn.textContent = 'Retry';
+    btn.disabled = false;
+  }
+}
+
+async function generateBlogPost(videoId) {
+  videoData[videoId] = videoData[videoId] || {};
+  const data = videoData[videoId];
+
+  // Auto-fetch transcript if needed
+  if (!data.transcript) {
+    const btn = document.getElementById(`btn-blog-${videoId}`);
+    btn.disabled = true;
+    btn.textContent = 'Fetching transcript...';
+    try {
+      data.transcript = await fetchTranscript(videoId);
+    } catch(e) {
+      showToast('Failed to fetch transcript: ' + e.message);
+      btn.textContent = 'Retry';
+      btn.disabled = false;
+      return;
+    }
+  }
+
+  const btn = document.getElementById(`btn-blog-${videoId}`);
+  const contentDiv = document.getElementById(`content-${videoId}`);
+  const video = allVideos.find(v => v.videoId === videoId);
+  const videoTitle = video ? video.title : '';
+  const channelName = video ? video.channelTitle : '';
+
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  // Show blog generation progress (no raw transcript)
+  contentDiv.innerHTML = `<div class="section-label">Blog Post</div>
+    <div class="section-box blog-post" id="blog-${videoId}"><div class="loading"><div class="spinner"></div>Generating deep content...</div></div>`;
+
+  try {
+    const blogPost = await callAI(
+      settings.summaryPrompt,
+      `Source: "${videoTitle}" by ${channelName}\n\nTranscript:\n\n${data.transcript}`,
+      (partial) => {
+        const el = document.getElementById(`blog-${videoId}`);
+        if (el) el.innerHTML = renderMarkdown(partial);
+      }
+    );
+
+    data.blogPost = blogPost;
+
+    // Re-render full view
+    renderVideos();
+    // Re-expand the card
+    const card = document.getElementById(`card-${videoId}`);
+    if (card) card.classList.add('expanded');
+
+  } catch(e) {
+    contentDiv.innerHTML += `<div class="section-box" style="color:var(--accent)">Error: ${escHtml(e.message)}</div>`;
+    btn.textContent = 'Retry';
+    btn.disabled = false;
+  }
+}
+
+async function generateCoverImage(videoId) {
+  const data = videoData[videoId];
+  if (!data?.blogPost) return;
+  const video = allVideos.find(v => v.videoId === videoId);
+  const videoTitle = video ? video.title : '';
+  const btn = document.getElementById(`btn-img-${videoId}`);
+  const contentDiv = document.getElementById(`content-${videoId}`);
+
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  try {
+    const imgPrompt = `Create a modern, minimalist tech blog cover image for an article titled "${videoTitle}". Style: clean gradient background, abstract geometric shapes, subtle AI/technology visual elements, no text or words on the image. Color palette: deep blues, purples, and accent highlights. Professional, editorial quality.`;
+
+    const imageDataUrl = await generateImage(imgPrompt);
+    data.coverImage = imageDataUrl;
+
+    // Save image to server
+    try {
+      await fetch(`${API_BASE}/api/save-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId, imageData: imageDataUrl, title: videoTitle })
+      });
+    } catch(e) { /* optional save, don't block */ }
+
+    // Re-render full view
+    renderVideos();
+    const card = document.getElementById(`card-${videoId}`);
+    if (card) card.classList.add('expanded');
+    showToast('Cover image generated!');
+  } catch(e) {
+    showToast('Image generation failed: ' + e.message);
+    btn.textContent = 'Retry Cover';
+    btn.disabled = false;
+  }
+}
+
+function copyText(videoId, type) {
+  const data = videoData[videoId];
+  let text;
+  if (type === 'blog') {
+    text = data?.blogPost;
+  } else if (type === 'blogHtml') {
+    const el = document.getElementById(`blog-${videoId}`);
+    if (el) {
+      // Copy rich text (HTML) for pasting into editors
+      const blob = new Blob([el.innerHTML], { type: 'text/html' });
+      const plainBlob = new Blob([data?.blogPost || ''], { type: 'text/plain' });
+      navigator.clipboard.write([new ClipboardItem({ 'text/html': blob, 'text/plain': plainBlob })]).then(() => showToast('Rich text copied!'));
+      return;
+    }
+    text = data?.blogPost;
+  } else {
+    text = data?.transcript;
+  }
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+}
+
+// ============ File Save ============
+async function savePost(videoId) {
+  const data = videoData[videoId];
+  if (!data?.blogPost) return;
+  const video = allVideos.find(v => v.videoId === videoId);
+  try {
+    const resp = await fetch(`${API_BASE}/api/save-post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: video?.title || '',
+        content: data.blogPost,
+        videoId,
+        channel: video?.channelTitle || ''
+      })
+    });
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error);
+    showToast(`Saved: ${result.filename}`);
+  } catch(e) {
+    showToast('Save failed: ' + e.message);
+  }
+}
+
+async function showSavedPosts() {
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '<div class="loading"><div class="spinner"></div>Loading saved posts...</div>';
+  // Deselect channel filters
+  activeFilter = '__saved__';
+  renderChannels();
+  try {
+    const resp = await fetch(`${API_BASE}/api/posts`);
+    const posts = await resp.json();
+    if (posts.length === 0) {
+      feed.innerHTML = `<div class="empty-state"><h3>No saved posts yet</h3><p>Generate a blog post and click "Save to File" to save it.</p></div>`;
+      return;
+    }
+    feed.innerHTML = posts.map(p => `
+      <div class="video-card">
+        <div class="video-main" onclick="this.parentElement.classList.toggle('expanded')" style="cursor:pointer">
+          <div class="video-info" style="width:100%">
+            <div class="video-title">${escHtml(p.title || p.filename)}</div>
+            <div class="video-meta">
+              <span>${escHtml(p.channel || '')}</span>
+              <span>${escHtml(p.date ? new Date(p.date).toLocaleString() : '')}</span>
+              <span>${escHtml(p.filename)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="video-expand">
+          <div class="section-box blog-post" id="saved-${escHtml(p.filename)}">
+            <div class="loading"><div class="spinner"></div>Loading...</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-copy" onclick="copySavedPost('${escHtml(p.filename)}')">Copy Markdown</button>
+            <button class="btn btn-outline" onclick="deleteSavedPost('${escHtml(p.filename)}')">Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    // Lazy load content on expand
+    feed.querySelectorAll('.video-main').forEach(el => {
+      el.addEventListener('click', async function() {
+        const card = this.parentElement;
+        const box = card.querySelector('.section-box');
+        if (box.dataset.loaded) return;
+        const fname = box.id.replace('saved-', '');
+        try {
+          const resp = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(fname)}`);
+          const md = await resp.text();
+          box.innerHTML = renderMarkdown(md);
+          box.dataset.loaded = 'true';
+        } catch(e) { box.innerHTML = `<span style="color:var(--accent)">Failed to load</span>`; }
+      });
+    });
+  } catch(e) {
+    feed.innerHTML = `<div class="empty-state"><h3>Error loading posts</h3><p>${escHtml(e.message)}</p></div>`;
+  }
+}
+
+async function copySavedPost(filename) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/posts/${encodeURIComponent(filename)}`);
+    const md = await resp.text();
+    await navigator.clipboard.writeText(md);
+    showToast('Copied!');
+  } catch(e) { showToast('Copy failed'); }
+}
+
+async function deleteSavedPost(filename) {
+  if (!confirm(`Delete ${filename}?`)) return;
+  try {
+    await fetch(`${API_BASE}/api/posts/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    showSavedPosts();
+  } catch(e) { showToast('Delete failed'); }
+}
+
+// ============ Markdown Renderer ============
+function renderInline(md) {
+  if (!md) return '';
+  let html = escHtml(md);
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/\n/g, ' ');
+  return html;
+}
+
+function renderMarkdown(md) {
+  if (!md) return '';
+  let html = escHtml(md);
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  // Bold
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // Blockquote
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // Horizontal rule
+  html = html.replace(/^---$/gm, '<hr>');
+  // Unordered list
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+  // Table (basic)
+  html = html.replace(/\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)+)/g, (match, header, body) => {
+    const ths = header.split('|').filter(Boolean).map(h => `<th>${h.trim()}</th>`).join('');
+    const rows = body.trim().split('\n').map(row => {
+      const tds = row.split('|').filter(Boolean).map(d => `<td>${d.trim()}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
+  });
+  // Paragraphs
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+  html = html.replace(/<p><(h[234]|ul|blockquote|hr|table)/g, '<$1');
+  html = html.replace(/<\/(h[234]|ul|blockquote|table)><\/p>/g, '</$1>');
+  html = html.replace(/<p><\/p>/g, '');
+  return html;
+}
+
+// ============ Settings ============
+function showSettings() {
+  document.getElementById('setEndpoint').value = settings.apiEndpoint;
+  document.getElementById('setApiKey').value = settings.apiKey;
+  document.getElementById('setModel').value = settings.model;
+  document.getElementById('setSummaryPrompt').value = settings.summaryPrompt;
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+
+function saveSettings() {
+  settings.apiEndpoint = document.getElementById('setEndpoint').value.trim();
+  settings.apiKey = document.getElementById('setApiKey').value.trim();
+  settings.model = document.getElementById('setModel').value.trim();
+  settings.summaryPrompt = document.getElementById('setSummaryPrompt').value.trim();
+  localStorage.setItem('yt_settings', JSON.stringify(settings));
+  closeSettings();
+  showToast('Settings saved');
+}
+
+// ============ Helpers ============
+function escHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function sortVideos() {
+  allVideos.sort((a, b) => new Date(b.published) - new Date(a.published));
+}
+
+function getTimeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ============ Init ============
+(async function init() {
+  renderChannels();
+  if (feeds.length > 0) {
+    await refreshAllFeeds();
+  } else {
+    renderVideos();
+  }
+})();
+
+// Close modal on overlay click
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+</script>
+</body>
+</html>
