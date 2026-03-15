@@ -486,7 +486,13 @@ body {
       <div class="channel-all active" onclick="filterChannel(null, this)">All Channels</div>
     </div>
   </div>
-  <div class="feed" id="feed"></div>
+  <div class="feed" id="feed">
+    <div style="padding:8px 0">
+      <input type="text" id="searchInput" placeholder="Search videos..." oninput="searchVideos(this.value)"
+             style="width:100%;padding:8px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;margin-bottom:8px">
+    </div>
+    <div id="videoList"></div>
+  </div>
 </div>
 
 <!-- Settings Modal -->
@@ -819,31 +825,62 @@ function renderChannels() {
   });
 }
 
+let searchQuery = '';
+
+function searchVideos(query) {
+  searchQuery = query.toLowerCase().trim();
+  renderVideos();
+}
+
 function renderVideos() {
   const feed = document.getElementById('feed');
+  const videoList = document.getElementById('videoList');
+  const target = videoList || feed;
 
   if (activeFilter === '__saved__') return; // handled by showSavedPosts
+
+  // Restore search bar if feed was overwritten (e.g. after showSavedPosts)
+  if (!videoList) {
+    feed.innerHTML = `<div style="padding:8px 0">
+      <input type="text" id="searchInput" placeholder="Search videos..." oninput="searchVideos(this.value)"
+             value="${escHtml(searchQuery)}"
+             style="width:100%;padding:8px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none;margin-bottom:8px">
+    </div><div id="videoList"></div>`;
+    return renderVideos(); // re-call with videoList now in DOM
+  }
+
   let filtered = activeFilter
     ? allVideos.filter(v => v.feedUrl === activeFilter)
     : allVideos;
 
+  // Apply search filter
+  if (searchQuery) {
+    filtered = filtered.filter(v =>
+      v.title.toLowerCase().includes(searchQuery) ||
+      v.channelTitle.toLowerCase().includes(searchQuery) ||
+      (videoData[v.videoId]?.summary || '').toLowerCase().includes(searchQuery)
+    );
+  }
+
   if (filtered.length === 0) {
-    if (feeds.length === 0) {
-      feed.innerHTML = `<div class="empty-state">
+    if (searchQuery) {
+      target.innerHTML = `<div class="empty-state"><h3>No results for "${escHtml(searchQuery)}"</h3></div>`;
+    } else if (feeds.length === 0) {
+      target.innerHTML = `<div class="empty-state">
         <h3>No subscriptions yet</h3>
         <p>Add a YouTube RSS feed URL in the sidebar to get started.</p>
         <p style="margin-top:12px;font-size:12px;color:#666;">
           Format: https://www.youtube.com/feeds/videos.xml?channel_id=XXXXX
         </p></div>`;
     } else {
-      feed.innerHTML = `<div class="empty-state">
+      target.innerHTML = `<div class="empty-state">
         <h3>No videos found</h3>
         <p>Try refreshing or selecting a different channel.</p></div>`;
     }
     return;
   }
 
-  feed.innerHTML = filtered.map(v => {
+  target.innerHTML = filtered.map(v => {
     const data = videoData[v.videoId] || {};
     const timeAgo = getTimeAgo(v.published);
     const hasSummary = !!data.summary;
@@ -957,7 +994,9 @@ function removeFeed(index) {
 }
 
 async function refreshAllFeeds() {
-  showToast('Refreshing...');
+  showToast('Refreshing feeds...');
+  const videoList = document.getElementById('videoList');
+  if (videoList) videoList.innerHTML = '<div class="loading" style="padding:40px;text-align:center"><div class="spinner"></div>Loading feeds...</div>';
   allVideos = [];
   const promises = feeds.map(async f => {
     try {
@@ -1173,7 +1212,7 @@ async function savePost(videoId) {
 
 async function showSavedPosts() {
   const feed = document.getElementById('feed');
-  feed.innerHTML = '<div class="loading"><div class="spinner"></div>Loading saved posts...</div>';
+  feed.innerHTML = '<div class="loading" style="padding:20px"><div class="spinner"></div>Loading saved posts...</div>';
   // Deselect channel filters
   activeFilter = '__saved__';
   renderChannels();
@@ -1356,6 +1395,17 @@ function showToast(msg) {
 // Close modal on overlay click
 document.getElementById('settingsModal').addEventListener('click', function(e) {
   if (e.target === this) closeSettings();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSettings();
+  // Ctrl/Cmd+K to focus search
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    const input = document.getElementById('searchInput');
+    if (input) input.focus();
+  }
 });
 </script>
 </body>
