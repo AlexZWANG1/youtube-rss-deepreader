@@ -39,24 +39,20 @@ All from a single dark-mode panel. No video watching required.
 ## Screenshots
 
 ### Main Feed View
-```
-┌──────────────────────────────────────────────────┐
-│  YouTube RSS Reader          [Refresh] [Saved] [⚙]│
-├────────┬─────────────────────────────────────────┤
-│ All    │  ┌─────────────────────────────────────┐ │
-│ No Pri │  │ 🎬 Video Title                      │ │
-│ a16z   │  │ Channel · 2h ago · Summarized       │ │
-│ Lex    │  ├─────────────────────────────────────┤ │
-│ Dwark  │  │ This episode features X discussing  │ │
-│ AIGRID │  │ Y with Z about AI scaling...        │ │
-│ All-In │  ├─────────────────────────────────────┤ │
-│ 2Min   │  │ [AI Summary] [Deep Blog] [Cover] [▶]│ │
-│ AIExp  │  │                                     │ │
-│ ...    │  │  ## Blog Post Content...             │ │
-│        │  │  [Copy MD] [Copy Rich] [Save File]  │ │
-│        │  └─────────────────────────────────────┘ │
-└────────┴─────────────────────────────────────────┘
-```
+![Main Feed](screenshots/main-feed.png)
+*Dark-mode feed with channel sidebar, video thumbnails, and real-time updates from 14+ AI/tech channels.*
+
+### Video Actions
+![Video Expanded](screenshots/video-expanded.png)
+*Click any video to reveal action buttons: AI Summary, Deep Blog Post, Cover Image generation, and direct YouTube link.*
+
+### Settings Panel
+![Settings](screenshots/settings-panel.png)
+*Configure API endpoint, model, system prompt, and manage feed subscriptions with OPML import/export.*
+
+### Mobile Responsive
+![Mobile View](screenshots/mobile-view.png)
+*Fully responsive on mobile — collapsible sidebar, touch-friendly controls, and full functionality on small screens.*
 
 ### Workflow
 ```
@@ -166,6 +162,7 @@ youtube-rss-deepreader/
 ├── package.json      # Dependencies
 ├── LICENSE           # MIT License
 ├── RELEASE_POST.md   # Release announcement (Chinese)
+├── screenshots/      # Demo screenshots for README
 ├── posts/            # Saved blog posts (git-ignored)
 ├── images/           # Generated cover images (git-ignored)
 └── README.md

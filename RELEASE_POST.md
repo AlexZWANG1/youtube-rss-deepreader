@@ -18,6 +18,36 @@
 2. **深度博文** — 参考 @宝玉 风格的完整长文，带双语引文、事实表格、结论式小标题，可以直接发布
 3. **AI 配图** — 通过 Gemini 生成博客封面（可选）
 
+### Demo 截图
+
+#### 主界面 — 频道订阅 + 视频流
+![Main Feed](screenshots/main-feed.png)
+
+暗色模式界面，左侧频道列表，右侧视频流。支持 14 个预配置的 AI/科技频道，实时显示最新视频。
+
+#### 视频操作 — 一键 AI 处理
+![Video Expanded](screenshots/video-expanded.png)
+
+点击任意视频，展开四个核心操作按钮：
+- **AI Summary** — 拉取字幕 → 生成一段话摘要
+- **Deep Blog Post** — 生成完整的深度博客文章（流式输出）
+- **Cover Image** — AI 生成博客封面图
+- **YouTube** — 直接跳转原视频
+
+#### 设置面板 — 灵活配置
+![Settings](screenshots/settings-panel.png)
+
+- 自定义 API Endpoint（支持 OpenAI、Gemini、Claude、Ollama 等任何兼容接口）
+- 自定义模型和系统提示词
+- OPML 导入/导出订阅
+
+#### 移动端适配
+![Mobile View](screenshots/mobile-view.png)
+
+手机上也能完整使用，侧边栏可折叠，触控友好。
+
+---
+
 ### v1.2 新功能
 
 - **一键批量摘要** — 点一下为所有视频生成摘要，实时进度条显示进度
@@ -33,9 +63,38 @@
 - **SSE 流式输出** — 实时看到 AI 写文章的过程
 - **文件保存系统** — 生成的文章自动保存为 Markdown，带 frontmatter 元数据
 
+### 架构
+
+```
+浏览器 (index.html)          Node.js 服务 (server.js)         外部服务
+┌────────────────┐          ┌──────────────────┐          ┌──────────────┐
+│  频道管理       │ ───RSS──▶│  RSS 代理         │ ────────▶│ YouTube RSS  │
+│  视频浏览       │          │  字幕获取         │          │ YouTube 字幕  │
+│  AI 调用(直连)  │ ───API──▶│                  │          └──────────────┘
+│  文件保存       │          │  文件管理         │          ┌──────────────┐
+│  localStorage  │          │  Port 3001       │          │ AI API       │
+└────────────────┘          └──────────────────┘          │ (OpenAI 兼容) │
+                                                          └──────────────┘
+```
+
 ### 内置 14 个 AI/科技频道
 
-No Priors (a16z) · a16z · Lex Fridman · Dwarkesh Patel · TheAIGRID · All-In Podcast · Two Minute Papers · AI Explained · Matthew Berman · Andrej Karpathy · Yannic Kilcher · ML Street Talk · Wes Roth · Matt Wolfe
+| 频道 | 方向 |
+|------|------|
+| No Priors (a16z) | AI 深度访谈 |
+| a16z | 顶级 VC 科技洞察 |
+| Lex Fridman | AI/科学/哲学 |
+| Dwarkesh Patel | 科技领袖访谈 |
+| TheAIGRID | AI 新闻汇总 |
+| All-In Podcast | 科技/VC/经济 |
+| Two Minute Papers | AI 论文速览 |
+| AI Explained | AI 模型深度分析 |
+| Matthew Berman | AI 工具评测 |
+| Andrej Karpathy | AI 深度教学 |
+| Yannic Kilcher | ML 论文精读 |
+| ML Street Talk | 技术 ML 讨论 |
+| Wes Roth | AI 前沿新闻 |
+| Matt Wolfe | AI 工具与应用 |
 
 ### 快速开始
 
@@ -48,12 +107,6 @@ npm start
 ```
 
 在 Settings 里配置你的 AI API endpoint 和 key 就行。
-
-### 工作流
-
-```
-订阅频道 → 刷新 → AI 摘要（一键） → 深度博文 → 保存/复制 → 发布
-```
 
 ### 适用场景
 
